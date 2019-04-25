@@ -528,8 +528,8 @@ void CCodMakeDlg::MakeCode(LPWSTR lpFile)
 	WCHAR wcsCurPath[MAX_PATH] = { 0 };
 	GetCurrentDirectory(MAX_PATH, wcsCurPath);
 	strWorkPath = wcsCurPath;
-	strWorkPath += L"\\"; strWorkPath += strGuid;
-	CreateDirectory(strWorkPath, NULL);
+	//strWorkPath += L"\\"; strWorkPath += strGuid;
+	//CreateDirectory(strWorkPath, NULL);
 
 	PCMD_INFO  pCmd_Info = pLibInfo->m_pBeginCmdInfo;
 
@@ -633,7 +633,9 @@ void CCodMakeDlg::MakeCode(LPWSTR lpFile)
 	DebugMessage("> 开始生成特征库===========================");
 	//————————————————————————————————————
 	
-	CString strTargetFile = strWorkPath; strTargetFile += L"\\";
+	CString strTargetFile = strWorkPath;
+	strTargetFile += L"\\";
+	strTargetFile += A2W((char*)pLibInfo->m_szName);
 	strTargetFile += strLibVer;
 	strTargetFile += L".Esig";
 
@@ -669,14 +671,33 @@ void CCodMakeDlg::MakeCode(LPWSTR lpFile)
 	DebugMessage("生成完毕!命令有效数为:%d",m_FuncOk.size());	
 
 	//—————————写入文件————————————————
-	WriteFile(hFile, "******\r\n", 8, &dwWritten, NULL);
-	
+	CStringA strText;
+
+	// 写入Config信息
+	WriteFile(hFile, "******Config******\r\n", 20, &dwWritten, NULL);
+
+	strText.Format("Name=%s\r\n", pLibInfo->m_szName);
+	WriteFile(hFile, strText.GetBuffer(), strText.GetLength(), &dwWritten, NULL);
+	strText.Format("Description=%s\r\n", pLibInfo->m_szGuid);
+	WriteFile(hFile, strText.GetBuffer(), strText.GetLength(), &dwWritten, NULL);
+
+	WriteFile(hFile, "******Config_End******\r\n", 24, &dwWritten, NULL);
+
+	// 写入SubFunc信息
+	WriteFile(hFile, "*****SubFunc*****\r\n", 19, &dwWritten, NULL);
+	WriteFile(hFile, "*****SubFunc_End*****\r\n", 23, &dwWritten, NULL);
+
+	// 写入Func信息
+	WriteFile(hFile, "***Func***\r\n", 12, &dwWritten, NULL);
+
 	map<string, string>::iterator it;
 	it = m_FuncOk.begin();
 	while (it != m_FuncOk.end()) {
 		WriteFile(hFile, (it->first + ":" + it->second + "\r\n").c_str(), it->first.length() + 3 + it->second.length(), &dwWritten, NULL);
 		it++;
 	}
+
+	WriteFile(hFile, "***Func_End***\r\n", 16, &dwWritten, NULL);
 
 	CloseHandle(hFile);
 		
